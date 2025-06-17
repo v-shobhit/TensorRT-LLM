@@ -144,7 +144,7 @@ install_tensorrt() {
 ID=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
 case "$ID" in
   ubuntu)
-    install_ubuntu_requirements
+    # install_ubuntu_requirements
     install_tensorrt
     ;;
   rocky)

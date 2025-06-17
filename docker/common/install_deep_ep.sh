@@ -11,7 +11,7 @@ if [ "$(. /etc/os-release && echo $ID)" == "rocky" ]; then
 fi
 libmlx5_dir=$(dirname $(ldconfig -p | grep libmlx5.so.1 | head -n1 | awk '{print $NF}'))
 
-export NVCC_APPEND_FLAGS="--threads 4"
+export NVCC_APPEND_FLAGS="--threads 4 --std c++17"
 
 # Custom NVSHMEM
 curl -fsSL https://developer.download.nvidia.com/compute/redist/nvshmem/3.2.5/source/nvshmem_src_3.2.5-1.txz | tar xz
