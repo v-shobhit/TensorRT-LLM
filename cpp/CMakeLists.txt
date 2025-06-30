@@ -346,11 +346,17 @@ if(NOT WIN32 AND NOT DEFINED USE_CXX11_ABI)
 endif()
 
 if(BUILD_PYT)
+  set(BACKUP_CMAKE_CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES})
+  set(BACKUP_CMAKE_CUDA_FLAGS ${CMAKE_CUDA_FLAGS})
   # Build TORCH_CUDA_ARCH_LIST
   set(TORCH_CUDA_ARCH_LIST "")
   foreach(CUDA_ARCH IN LISTS CMAKE_CUDA_ARCHITECTURES)
-    string(REGEX REPLACE "^([1-9][0-9]*)([0-9]a?)-real$" "\\1.\\2" TORCH_ARCH
-                         ${CUDA_ARCH})
+    if(CUDA_ARCH STREQUAL "100f-real")
+      set(TORCH_ARCH "10.0")
+    else()
+      string(REGEX REPLACE "^([1-9][0-9]*)([0-9]a?)-real$" "\\1.\\2" TORCH_ARCH
+                           ${CUDA_ARCH})
+    endif()
     list(APPEND TORCH_CUDA_ARCH_LIST ${TORCH_ARCH})
   endforeach()
 
@@ -411,7 +417,8 @@ print(os.path.dirname(torch.__file__),end='');"
       endif()
     endif()
   endif()
-
+  set(CMAKE_CUDA_ARCHITECTURES ${BACKUP_CMAKE_CUDA_ARCHITECTURES})
+  set(CMAKE_CUDA_FLAGS ${BACKUP_CMAKE_CUDA_FLAGS})
 else()
   if(NOT WIN32)
     if(NOT USE_CXX11_ABI)

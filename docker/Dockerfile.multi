@@ -80,6 +80,9 @@ RUN wget https://urm.nvidia.com/artifactory/sw-gpu-cuda-installer-generic-local/
     dpkg -i cuda-nvrtc-dev-13-0_13.0.28-1_amd64.deb && \
     rm cuda-nvrtc-dev-13-0_13.0.28-1_amd64.deb
 
+RUN wget https://github.com/Kitware/CMake/releases/download/v4.0.3/cmake-4.0.3-linux-x86_64.sh && \
+    bash cmake-4.0.3-linux-x86_64.sh --skip-license --prefix=/usr/local/cmake --exclude-subdir
+
 # WARs against security issues inherited from pytorch:25.04
 # * https://github.com/advisories/GHSA-vqfr-h8mv-ghfj
 # * https://github.com/advisories/GHSA-7cx3-6m66-7c5m
