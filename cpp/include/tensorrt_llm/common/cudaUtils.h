@@ -306,6 +306,16 @@ inline int getSMVersion()
     return sm_major * 10 + sm_minor;
 }
 
+inline int getSMFamily()
+{
+    int sm = getSMVersion();
+    if (sm == 100 || sm == 103)
+    {
+        return 100;
+    }
+    return sm;
+}
+
 inline int getDevice()
 {
     int deviceID{0};

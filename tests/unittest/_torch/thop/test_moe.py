@@ -566,7 +566,7 @@ def quant_dequant_per_tensor_fp8(a):
 
 
 @pytest.mark.skipif(
-    getSMVersion() != 100,
+    getSMVersion() < 100 or getSMVersion() >= 110,
     reason="The kernel only supports Blackwell. Current SM is %d." %
     getSMVersion(),
 )
@@ -667,7 +667,7 @@ def test_moe_fp8(num_tokens, expert_info, hidden_size, intermediate_size,
 
 
 @pytest.mark.skipif(
-    getSMVersion() != 100,
+    getSMVersion() < 100 or getSMVersion() >= 110,
     reason="The kernel only supports Blackwell. Current SM is %d." %
     getSMVersion(),
 )
@@ -967,7 +967,7 @@ def test_moe_fp4(num_tokens, hidden_size, intermediate_size, routing_info):
 
 
 @pytest.mark.skipif(
-    getSMVersion() != 100,
+    getSMVersion() < 100 or getSMVersion() >= 110,
     reason="The kernel only supports Blackwell. Current SM is %d." %
     getSMVersion(),
 )

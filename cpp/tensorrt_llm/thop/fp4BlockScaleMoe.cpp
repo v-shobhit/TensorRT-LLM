@@ -37,8 +37,8 @@ std::vector<torch::Tensor> fp4_block_scale_moe_runner(torch::Tensor const& routi
     int64_t const local_num_experts, std::optional<double> const routed_scaling_factor, int64_t const tile_tokens_dim,
     int64_t const routing_method_type, bool const do_finalize)
 {
-    auto const sm = tensorrt_llm::common::getSMVersion();
-    TORCH_CHECK(sm == 100, "Only SM100 is supported by FP4 block scale MOE");
+    auto const sm = tensorrt_llm::common::getSMFamily();
+    TORCH_CHECK(sm == 100, "Only SM100f is supported by FP4 block scale MOE");
     TORCH_CHECK(routing_logits.scalar_type() == at::ScalarType::Float
             || routing_logits.scalar_type() == at::ScalarType::BFloat16,
         "routing_logits must be float or bfloat16.");

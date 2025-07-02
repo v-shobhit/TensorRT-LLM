@@ -201,10 +201,13 @@ function(process_target target_name enable_hopper enable_blackwell)
                                PUBLIC COMPILE_HOPPER_TMA_GROUPED_GEMMS)
   endif()
 
-  if(${enable_blackwell} AND ("100" IN_LIST CMAKE_CUDA_ARCHITECTURES_ORIG
-                              OR "120" IN_LIST CMAKE_CUDA_ARCHITECTURES_ORIG))
+  if(${enable_blackwell}
+     AND ("100" IN_LIST CMAKE_CUDA_ARCHITECTURES_ORIG
+          OR "120" IN_LIST CMAKE_CUDA_ARCHITECTURES_ORIG
+          OR "100f" IN_LIST CMAKE_CUDA_ARCHITECTURES_ORIG))
 
-    if("100" IN_LIST CMAKE_CUDA_ARCHITECTURES_ORIG)
+    if(("100" IN_LIST CMAKE_CUDA_ARCHITECTURES_ORIG)
+       OR ("100f" IN_LIST CMAKE_CUDA_ARCHITECTURES_ORIG))
       # No kernels should be parsed, unless blackwell is specified. This is a
       # build time improvement
       target_compile_definitions(${target_name}
