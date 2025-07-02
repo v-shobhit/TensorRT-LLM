@@ -602,12 +602,12 @@ inline TllmGenFmhaKernel const* getTllmFmhaKernels(
     Data_type dtypeQ, Data_type dtypeKv, Data_type dtypeOut, unsigned int sm)
 {
 
-#ifndef EXCLUDE_SM_100
+#ifndef EXCLUDE_SM_103
     return TllmFmhaKernelFactory::Get().getKernels(sTllmGenFmhaKernelMetaInfos,
         sizeof(sTllmGenFmhaKernelMetaInfos) / sizeof(sTllmGenFmhaKernelMetaInfos[0]), dtypeQ, dtypeKv, dtypeOut, sm);
 #else
     return nullptr;
-#endif // EXCLUDE_SM_100
+#endif // EXCLUDE_SM_103
 }
 
 } // namespace kernels
