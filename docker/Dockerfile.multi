@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile
 ARG BASE_IMAGE=gitlab-master.nvidia.com:5005/dl/dgx/pytorch
 ARG TRITON_IMAGE=nvcr.io/nvidia/tritonserver
-ARG BASE_TAG=13.0-py3.30045367-devel-amd64
+ARG BASE_TAG=13.0-py3.30045367-devel-arm64
 ARG TRITON_BASE_TAG=25.05-py3
 ARG DEVEL_IMAGE=devel
 
@@ -76,12 +76,14 @@ RUN pip3 install opencv-python-headless --force-reinstall --no-deps --no-cache-d
 COPY docker/common/install_deep_ep.sh install_deep_ep.sh
 RUN bash ./install_deep_ep.sh && rm install_deep_ep.sh
 
-RUN wget https://urm.nvidia.com/artifactory/sw-gpu-cuda-installer-generic-local/packaging/r13.0/cuda_nvrtc/linux-x86_64/13.0.28/cuda-nvrtc-dev-13-0_13.0.28-1_amd64.deb && \
-    dpkg -i cuda-nvrtc-dev-13-0_13.0.28-1_amd64.deb && \
-    rm cuda-nvrtc-dev-13-0_13.0.28-1_amd64.deb
+RUN wget https://urm.nvidia.com/artifactory/sw-gpu-cuda-installer-generic-local/packaging/r13.0/cuda_nvrtc/linux-aarch64/13.0.28/cuda-nvrtc-dev-13-0_13.0.28-1_arm64.deb && \
+    dpkg -i --force-overwrite cuda-nvrtc-dev-13-0_13.0.28-1_arm64.deb && \
+    rm cuda-nvrtc-dev-13-0_13.0.28-1_arm64.deb
 
-RUN wget https://github.com/Kitware/CMake/releases/download/v4.0.3/cmake-4.0.3-linux-x86_64.sh && \
-    bash cmake-4.0.3-linux-x86_64.sh --skip-license --prefix=/usr/local/cmake --exclude-subdir
+RUN apt-get install -f
+
+RUN wget https://github.com/Kitware/CMake/releases/download/v4.0.3/cmake-4.0.3-linux-aarch64.sh && \
+    bash cmake-4.0.3-linux-aarch64.sh --skip-license --prefix=/usr/local/cmake --exclude-subdir
 
 # WARs against security issues inherited from pytorch:25.04
 # * https://github.com/advisories/GHSA-vqfr-h8mv-ghfj
