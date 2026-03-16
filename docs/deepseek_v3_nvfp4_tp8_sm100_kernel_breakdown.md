@@ -126,12 +126,16 @@ Used for: `input_layernorm`, `post_attention_layernorm`, `q_a_layernorm`, `kv_a_
 
 | Kernel | Op | Shape (per rank) | Precision |
 |--------|----|-------------------|-----------|
-| `nvfp4_gemm` / `cutlass_gemm` | `kv_a_proj_with_mqa` | [tokens, 7168] × [7168, 2112] | NVFP4 weights, BF16 act → BF16 out |
+| `dsv3_fused_a_gemm_op` / `nvfp4_gemm` | `kv_a_proj_with_mqa` | [tokens, 7168] × [7168, 2112] | NVFP4 weights, BF16 act → BF16 out |
 | `rms_norm_kernel` × 2 | `q_a_layernorm` + `kv_a_layernorm` | [tokens, 1536] and [tokens, 512] | BF16 (parallel on main + aux stream) |
 | `nvfp4_gemm` / `cutlass_gemm` | `q_b_proj` (TP-column) | [tokens, 1536] × [1536, 3072] | NVFP4 weights → BF16 (3072 = 16 heads × 192 head_dim) |
 | `nvfp4_gemm` / `cutlass_gemm` | `kv_b_proj` (context only, TP-col) | [tokens, 512] × [512, 4096] | NVFP4 weights → BF16 (4096 = 16 × (128+128)) |
 
-For NVFP4 on SM100, these linear layers use CUTLASS NVFP4 GEMM kernels with:
+**Min-latency generation kernels (≤16 tokens, SM≥90):**
+- `dsv3_fused_a_gemm_op` (`dsv3FusedAGemmOp.cpp`): Specialized fused-A GEMM for small token counts (1–16 tokens), replacing cuBLAS for the `kv_a_proj_with_mqa` projection. Template-instantiated per token count for maximum register utilization.
+- `dsv3_router_gemm_op` (`dsv3RouterGemmOp.cpp`): Specialized router GEMM for small batches, computing [tokens, 7168] × [256, 7168]ᵀ → FP32 logits. Also template-instantiated per token count.
+
+For NVFP4 on SM100, standard linear layers use CUTLASS NVFP4 GEMM kernels with:
 - E2M1 weight format (2 values packed per byte)
 - FP8 block scaling factors (16-element blocks)
 - SM100 TMA warp-specialized mainloop (`KernelTmaWarpSpecialized1SmNvf4Sm100` or `2Sm` variant)
@@ -180,8 +184,8 @@ The MoE layer runs the **routed experts** and **shared expert** in parallel on s
 
 | Kernel | Description |
 |--------|-------------|
-| `gemm` (gate weight) | Router logits: [tokens, 7168] × [256, 7168]ᵀ → [tokens, 256]. BF16 matmul. |
-| `RoutingKernel_DeepSeekV3` | DeepSeekV3-specific routing: sigmoid → routing bias → top-8 selection. Fused routing kernel (TRTLLMGen) or `topk_kernel` + `finalize_moe_route` (CUTLASS backend). |
+| `dsv3_router_gemm_op` / `cublas_gemm` | Router logits: [tokens, 7168] × [256, 7168]ᵀ → [tokens, 256]. BF16→FP32. Uses min-latency kernel for ≤16 tokens. |
+| `noaux_tc_op` / `RoutingKernel_DeepSeekV3` | DeepSeekV3-specific routing: sigmoid → routing bias (`e_score_correction_bias`) → group top-K (n_group=8, topk_group=4) → top-8. `noaux_tc_op` is the CUTLASS backend; `RoutingKernel_DeepSeekV3` is TRTLLMGen. Applies `routed_scaling_factor=2.5`. |
 
 #### 3.5.2 Routed Experts (256 experts, top-8 per token)
 
@@ -312,7 +316,13 @@ The `MoEAllReduce` custom kernel handles the entire post-MoE pipeline.
 - Model: `tensorrt_llm/_torch/models/modeling_deepseekv3.py`
 - MLA: `tensorrt_llm/_torch/modules/attention.py` (class `MLA`)
 - MoE backends: `tensorrt_llm/_torch/modules/fused_moe/`
+- MoE quantization: `tensorrt_llm/_torch/modules/fused_moe/quantization.py`
+- MoE routing: `tensorrt_llm/_torch/modules/fused_moe/routing.py`
 - CUTLASS MoE kernels: `cpp/tensorrt_llm/kernels/cutlass_kernels/moe_gemm/`
 - TRTLLMGen MoE: `cpp/tensorrt_llm/kernels/trtllmGenKernels/blockScaleMoe/`
 - NVFP4 GEMM SM100: `cpp/tensorrt_llm/kernels/cutlass_kernels/fp4_gemm/nvfp4_nvfp4_gemm_template_sm100.h`
+- Min-latency kernels: `cpp/tensorrt_llm/kernels/dsv3MinLatencyKernels/` (`dsv3FusedAGemm.h/cu`, `dsv3RouterGemm.h/cu`)
+- Custom ops: `cpp/tensorrt_llm/thop/dsv3FusedAGemmOp.cpp`, `dsv3RouterGemmOp.cpp`, `noAuxTcOp.cpp`
+- AllReduce GEMM SM100: `cpp/tensorrt_llm/kernels/cutlass_kernels/allreduce_gemm/allreduce_gemm_impl_sm100.h`
 - Fusion ops: `tensorrt_llm/_torch/distributed/` (AllReduce, MoEAllReduce)
+- Configs: `examples/configs/curated/deepseek-r1-latency.yaml`, `deepseek-r1-throughput.yaml`
